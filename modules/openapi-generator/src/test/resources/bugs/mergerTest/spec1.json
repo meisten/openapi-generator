@@ -8,6 +8,11 @@
   "paths": {
     "/spec1": {
       "get": {
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
         "tags": [
           "spec1"
         ],
@@ -60,6 +65,12 @@
     }
   },
   "components": {
+    "securitySchemes": {
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      }
+    },
     "schemas": {
       "Spec1Model": {
         "type": "object",

@@ -6,6 +6,8 @@ info:
 paths:
   /spec1:
     get:
+      security:
+        - basicAuth: [ ]
       tags:
       - spec1
       summary: dummy
@@ -38,6 +40,10 @@ paths:
                 $ref: '#/components/schemas/Spec1Model'
 
 components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
   schemas:
     Spec1Model:
       type: object

@@ -6,6 +6,8 @@ info:
 paths:
   /spec2:
     get:
+      security:
+        - http_basic_auth: [ ]
       tags:
       - spec2
       summary: dummy
@@ -19,6 +21,11 @@ paths:
                 $ref: '#/components/schemas/Spec2Model'
 
 components:
+  securitySchemes:
+    http_basic_auth:
+      type: http
+      scheme: basic
+
   schemas:
     Spec2Model:
       type: object

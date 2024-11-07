@@ -12,10 +12,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.swagger.v3.oas.models.Components;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +54,7 @@ public class MergedSpecBuilder {
         ParseOptions options = new ParseOptions();
         options.setResolve(true);
         List<SpecWithPaths> allPaths = new ArrayList<>();
+        List<SpecWithSecuritySchemas> allSecuritySchemas = new ArrayList<>();
 
         for (String specRelatedPath : specRelatedPaths) {
             String specPath = inputSpecRootDirectory + File.separator + specRelatedPath;
@@ -69,12 +72,18 @@ public class MergedSpecBuilder {
                     }
                 }
                 allPaths.add(new SpecWithPaths(specRelatedPath, result.getPaths().keySet()));
+
+                Optional.ofNullable(result.getComponents())
+                        .map(Components::getSecuritySchemes)
+                        .stream()
+                        .flatMap(i -> i.entrySet().stream())
+                        .forEach(e -> allSecuritySchemas.add(new SpecWithSecuritySchemas(specRelatedPath, e.getKey())));
             } catch (Exception e) {
                 LOGGER.error("Failed to read file: {}. It would be ignored", specPath);
             }
         }
 
-        Map<String, Object> mergedSpec = generatedMergedSpec(openapiVersion, allPaths);
+        Map<String, Object> mergedSpec = generatedMergedSpec(openapiVersion, allPaths, allSecuritySchemas);
         String mergedFilename = this.mergeFileName + (isJson ? ".json" : ".yaml");
         Path mergedFilePath = Paths.get(inputSpecRootDirectory, mergedFilename);
 
@@ -88,9 +97,11 @@ public class MergedSpecBuilder {
         return mergedFilePath.toString();
     }
 
-    private static Map<String, Object> generatedMergedSpec(String openapiVersion, List<SpecWithPaths> allPaths) {
+    private static Map<String, Object> generatedMergedSpec(String openapiVersion, List<SpecWithPaths> allPaths, List<SpecWithSecuritySchemas> allSecuritySchemas) {
         Map<String, Object> spec = generateHeader(openapiVersion);
         Map<String, Object> paths = new HashMap<>();
+        Map<String, Object> components = new HashMap<>();
+        Map<String, Object> securitySchemes = new HashMap<>();
         spec.put("paths", paths);
 
         for(SpecWithPaths specWithPaths : allPaths) {
@@ -100,6 +111,21 @@ public class MergedSpecBuilder {
                     "$ref", specRelatedPath
                 ));
             }
+        }
+
+        for(SpecWithSecuritySchemas specWithSecuritySchemas : allSecuritySchemas) {
+            String specRelatedPath = "./" + specWithSecuritySchemas.specRelatedPath + "#/components/securitySchemes/" + specWithSecuritySchemas.securitySchemeName;
+            securitySchemes.put(specWithSecuritySchemas.securitySchemeName, ImmutableMap.of(
+                    "$ref", specRelatedPath
+            ));
+        }
+
+        if (!securitySchemes.isEmpty()) {
+            components.put("securitySchemes", securitySchemes);
+        }
+
+        if (!components.isEmpty()) {
+            spec.put("components", components);
         }
 
         return spec;
@@ -149,4 +175,17 @@ public class MergedSpecBuilder {
             this.paths = paths;
         }
     }
+
+    private static class SpecWithSecuritySchemas {
+
+        private final String specRelatedPath;
+        private final String securitySchemeName;
+
+        private SpecWithSecuritySchemas(final String specRelatedPath, final String securitySchemeName) {
+            this.specRelatedPath = specRelatedPath;
+            this.securitySchemeName = securitySchemeName;
+        }
+
+    }
+
 }

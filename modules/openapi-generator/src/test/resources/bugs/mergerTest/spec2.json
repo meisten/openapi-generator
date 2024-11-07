@@ -8,6 +8,11 @@
   "paths": {
     "/spec2": {
       "get": {
+        "security": [
+          {
+            "http_basic_auth": []
+          }
+        ],
         "tags": [
           "spec2"
         ],
@@ -29,6 +34,12 @@
     }
   },
   "components": {
+    "securitySchemes": {
+      "http_basic_auth":{
+        "type": "http",
+        "scheme": "basic"
+      }
+    },
     "schemas": {
       "Spec2Model": {
         "type": "object",
